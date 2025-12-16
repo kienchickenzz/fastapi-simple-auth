@@ -7,6 +7,7 @@ from src.base.dependency_injection import Injects
 from src.base.exception.repository.base import NotFoundException
 
 # local imports
+from src.base.config import Config
 from src.auth.util.main import (
     authenticate, password_hash_match, 
     create_access_token, create_refresh_token, verify_token
@@ -38,7 +39,8 @@ router = APIRouter(tags=[Tags.ACCOUNT], prefix="/v1/account/authentication")
 async def generate_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     account_repository: AccountRepository = Injects("account_repository"),
-    jwt_repository: JWTRepository = Injects("jwt_repository")
+    jwt_repository: JWTRepository = Injects("jwt_repository"),
+    config: Config = Injects("config")
 ) -> AccessTokenResponse:
     try:
         account_entities = await account_repository.get_by_email(email=form_data.username)
@@ -61,10 +63,12 @@ async def generate_token(
     await jwt_repository.delete_by_account_id(account_id=account_entity.id)
     
     access_token = create_access_token(
-        data={"sub": str(account_entity.id)}
+        data={"sub": str(account_entity.id)}, 
+        config=config
     )
     refresh_token = create_refresh_token(
-        data={"sub": str(account_entity.id)}
+        data={"sub": str(account_entity.id)},
+        config=config
     )
 
     jwt_entity = await jwt_repository.create(
@@ -95,9 +99,10 @@ async def generate_token(
 async def refresh_token(
     request: RefreshTokenRequest,
     authenticated_account_id: int = Security(authenticate),
-    jwt_repository: JWTRepository = Injects("jwt_repository")
+    jwt_repository: JWTRepository = Injects("jwt_repository"),
+    config: Config = Injects("config")
 ) -> AccessTokenResponse:
-    account_id = verify_token(token=request.refresh_token, type="refresh")
+    account_id = verify_token(token=request.refresh_token, type="refresh", config=config)
     if authenticated_account_id != account_id:
         raise AccountUnAuthorizedException()
 
@@ -105,10 +110,10 @@ async def refresh_token(
     # that account ID is valid and not corrupted - we don't need to fetch account model again
 
     access_token = create_access_token(
-        data={"sub": str(account_id)}
+        data={"sub": str(account_id)}, config=config
     )
     refresh_token = create_refresh_token(
-        data={"sub": str(account_id)}
+        data={"sub": str(account_id)}, config=config
     )
 
     jwt_entities = await jwt_repository.update_by_account_id(

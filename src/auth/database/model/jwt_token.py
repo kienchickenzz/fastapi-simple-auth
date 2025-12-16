@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.base.database.model.base import Base
@@ -8,7 +6,7 @@ from src.base.database.model.base import Base
 class JWTToken(Base):
     __tablename__ = "jwt_token"
 
-    account_id: Mapped[UUID] = mapped_column(
+    account_id: Mapped[int] = mapped_column(
         "account_uuid", nullable=False
     )
     access_token: Mapped[str] = mapped_column(
