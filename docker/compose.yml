@@ -1,0 +1,27 @@
+services:
+    db:
+        hostname: db
+        container_name: postgres_db
+        image: postgres:15
+        restart: no
+        networks:
+        - server
+        environment:
+            POSTGRES_USER: ${DB_USER}
+            POSTGRES_PASSWORD: ${DB_PASSWORD}
+            POSTGRES_DB: ${DB_NAME}
+        ports:
+            - "5432:5432"
+        volumes:
+            - ./volumes/postgres:/var/lib/postgresql/data
+            - ./postgres_bootstrap:/docker-entrypoint-initdb.d
+        healthcheck:
+            test: [ "CMD", "pg_isready", "-U", "root", "-d", "db" ] 
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+networks:
+    server:
+        driver: bridge
+        name: server-network
